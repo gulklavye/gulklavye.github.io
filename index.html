@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sol El Hızlı Klavye Antrenmanı</title>
+  <title>Tam Klavye & İki El Hızlı Klavye Antrenmanı</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #070d19;
@@ -22,10 +23,10 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     
     html, body {
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
       background-color: var(--bg);
       color: var(--text-main);
+      overflow-x: hidden;
     }
 
     body {
@@ -37,11 +38,9 @@
 
     .app-wrapper {
       width: 100%;
-      max-width: 1100px;
-      height: 96vh;
+      max-width: 1200px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       gap: 12px;
     }
 
@@ -49,7 +48,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .header h1 {
       font-size: clamp(20px, 2.2vw, 28px);
@@ -89,17 +88,19 @@
       color: var(--text-main);
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
-    .btn-audio {
+    .btn-action {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      color: var(--text-muted);
+      color: var(--text-main);
       font-size: 13px;
       padding: 6px 14px;
       border-radius: 10px;
       cursor: pointer;
       font-weight: 600;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .btn-audio.active { color: var(--correct); border-color: var(--correct); }
+    .btn-action:hover { border-color: var(--accent); }
+    .btn-audio.active, .btn-speech.active { color: var(--correct); border-color: var(--correct); }
 
     .stats-card {
       background: var(--card-bg);
@@ -117,7 +118,8 @@
     }
     .stat-item { text-align: center; }
     .stat-lbl { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; font-weight: 700; }
-    .stat-val { font-size: clamp(20px, 2.2vw, 26px); font-weight: 800; color: var(--text-main); margin-top: 2px; }
+    .stat-val { font-size: clamp(18px, 2vw, 24px); font-weight: 800; color: var(--text-main); margin-top: 2px; }
+    .weak-keys-val { color: var(--highlight); font-size: 16px; font-weight: 700; }
 
     .progress-bar-bg {
       width: 100%;
@@ -137,12 +139,12 @@
       background: var(--card-bg);
       border: 2px solid var(--border);
       border-radius: 14px;
-      padding: 24px 32px;
+      padding: 20px 28px;
       min-height: 110px;
-      max-height: 160px;
+      max-height: 150px;
       position: relative;
       cursor: text;
-      font-size: clamp(22px, 2.2vw, 30px);
+      font-size: clamp(22px, 2.2vw, 28px);
       line-height: 1.5;
       user-select: none;
       display: flex;
@@ -176,6 +178,95 @@
     }
     @keyframes caretBlink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.2; } }
 
+    .interactive-section {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .hand-overlay-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 170px;
+      flex-shrink: 0;
+    }
+    .hand-title { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; }
+    
+    .hand-svg {
+      width: 120px;
+      height: 130px;
+    }
+    .finger-path {
+      fill: #1e293b;
+      stroke: #334155;
+      stroke-width: 2;
+      transition: fill 0.2s, stroke 0.2s, filter 0.2s;
+    }
+    .finger-path.active-finger {
+      fill: #f59e0b !important;
+      stroke: #fde047 !important;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+    }
+
+    .keyboard-container {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      flex: 1;
+    }
+    .kb-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      justify-content: center;
+    }
+    .key {
+      height: clamp(38px, 5vh, 46px);
+      flex: 1;
+      max-width: 58px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(13px, 1.2vw, 15px);
+      font-weight: 700;
+      color: #64748b;
+      transition: transform 0.1s, background-color 0.15s, color 0.15s;
+      position: relative;
+    }
+    .key.left-side { color: #f1f5f9; border-color: #475569; }
+    .key.right-side { color: #38bdf8; border-color: #0284c7; }
+    .key.has-nub::after {
+      content: '';
+      position: absolute;
+      bottom: 5px;
+      width: 14px;
+      height: 2px;
+      background: #94a3b8;
+      border-radius: 2px;
+    }
+    .key.space-key { max-width: 360px; flex: 5; }
+    .key.active-target {
+      background: var(--highlight) !important;
+      color: #0b1120 !important;
+      border-color: #f59e0b !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+    }
+
     .hint-bar {
       display: flex;
       align-items: center;
@@ -189,99 +280,95 @@
     }
     .hint-highlight { font-weight: 800; color: #fde047; }
 
-    .keyboard-container {
-      background: #0b1120;
+    .badges-card {
+      background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: center;
-      width: 100%;
-    }
-    .kb-row {
-      display: flex;
-      gap: 6px;
-      width: 100%;
-      justify-content: center;
-    }
-    .key {
-      height: clamp(38px, 5.5vh, 48px);
-      flex: 1;
-      max-width: 60px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: clamp(13px, 1.2vw, 16px);
-      font-weight: 700;
-      color: #64748b;
-      transition: transform 0.1s, background-color 0.15s, color 0.15s;
-      position: relative;
+      justify-content: space-around;
+      gap: 10px;
     }
-    .key.left-side { color: #f1f5f9; border-color: #475569; }
-    .key.has-nub::after {
-      content: '';
-      position: absolute;
-      bottom: 5px;
-      width: 14px;
-      height: 2px;
-      background: #94a3b8;
-      border-radius: 2px;
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.35;
+      filter: grayscale(100%);
+      transition: all 0.3s ease;
     }
-    .key.space-key {
-      max-width: 380px;
-      flex: 5;
+    .badge-item.unlocked {
+      opacity: 1;
+      filter: grayscale(0%);
     }
-    .key.active-target {
-      background: var(--highlight) !important;
-      color: #0b1120 !important;
-      border-color: #f59e0b !important;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
-    }
+    .badge-icon { font-size: 22px; }
+    .badge-info { text-align: left; }
+    .badge-title { font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .badge-desc { font-size: 10px; color: var(--text-muted); }
 
-    .modal-overlay {
+    .stats-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(7, 13, 25, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(7, 13, 25, 0.92);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 200;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease;
     }
-    .modal-overlay.open { opacity: 1; pointer-events: auto; }
-    .modal-box {
+    .stats-overlay.open { opacity: 1; pointer-events: auto; }
+    .stats-modal-box {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 30px;
-      width: 90%;
-      max-width: 420px;
-      text-align: center;
+      border-radius: 18px;
+      padding: 28px;
+      width: 92%;
+      max-width: 680px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
-    .modal-box h2 { font-size: 22px; color: var(--correct); }
-    .modal-stats { display: flex; justify-content: space-around; margin: 8px 0; }
-    .modal-tip { font-size: 13px; color: var(--text-muted); }
-    .modal-btn {
-      background: var(--accent);
-      color: #0b1120;
+    .stats-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stats-modal-header h2 { font-size: 22px; color: var(--accent); font-weight: 800; }
+    .btn-close {
+      background: transparent;
       border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 24px;
       cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-close:hover { color: var(--wrong); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .summary-box {
+      background: #162036;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .summary-lbl { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+    .summary-val { font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 4px; }
+
+    .chart-container-large {
+      width: 100%;
+      height: 220px;
+      position: relative;
     }
   </style>
 </head>
@@ -289,7 +376,7 @@
 
 <div class="app-wrapper">
   <div class="header">
-    <h1>Sol El Hızlı Klavye Antrenmanı</h1>
+    <h1>Hızlı Klavye Antrenman Platformu</h1>
     <div class="control-panels">
       <div class="mode-group">
         <button class="btn-mode active" id="btn-type-words" onclick="setTypeMode('words')">Kelimeler</button>
@@ -297,21 +384,28 @@
       </div>
       <div class="mode-group">
         <button class="btn-mode active" id="btn-diff-left" onclick="setDiffMode('leftOnly')">Yalnızca Sol El</button>
-        <button class="btn-mode" id="btn-diff-mix" onclick="setDiffMode('balanced')">Sol El + Sağ El Dengeli</button>
+        <button class="btn-mode" id="btn-diff-right" onclick="setDiffMode('rightOnly')">Yalnızca Sağ El</button>
+        <button class="btn-mode" id="btn-diff-mix" onclick="setDiffMode('balanced')">Sol + Sağ (Çift El)</button>
       </div>
-      <button class="btn-audio active" id="btn-sound" onclick="toggleSound()">🔊 Ses Açık</button>
+      <button class="btn-action btn-audio active" id="btn-sound" onclick="toggleSound()">🔊 Ses Açık</button>
+      <button class="btn-action btn-speech" id="btn-speech" onclick="toggleSpeech()">🔇 Kelime Okuma Kapalı</button>
+      <button class="btn-action" onclick="openStatsModal()">📊 İlerleme & İstatistikler</button>
     </div>
   </div>
 
   <div class="stats-card">
     <div class="stats-row">
       <div class="stat-item">
-        <div class="stat-lbl">Hız (DKS / WPM)</div>
+        <div class="stat-lbl">Anlık Hız (WPM)</div>
         <div class="stat-val" id="stat-wpm">0</div>
       </div>
       <div class="stat-item">
-        <div class="stat-lbl">Doğruluk</div>
+        <div class="stat-lbl">Anlık Doğruluk</div>
         <div class="stat-val" id="stat-acc">%100</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-lbl">En Çok Zorlanılan</div>
+        <div class="weak-keys-val" id="stat-weak-keys">-</div>
       </div>
       <div class="stat-item">
         <div class="stat-lbl">İlerleme</div>
@@ -332,177 +426,259 @@
     <div>Önerilen Parmak: <span class="hint-highlight" id="hint-finger">-</span></div>
   </div>
 
-  <div class="keyboard-container">
-    <div class="kb-row">
-      <div class="key left-side" id="k-q">Q</div>
-      <div class="key left-side" id="k-w">W</div>
-      <div class="key left-side" id="k-e">E</div>
-      <div class="key left-side" id="k-r">R</div>
-      <div class="key left-side" id="k-t">T</div>
-      <div class="key" id="k-y">Y</div>
-      <div class="key" id="k-u">U</div>
-      <div class="key" id="k-ı">I</div>
-      <div class="key" id="k-o">O</div>
-      <div class="key" id="k-p">P</div>
-      <div class="key" id="k-ğ">Ğ</div>
-      <div class="key" id="k-ü">Ü</div>
+  <div class="interactive-section">
+    <!-- Dinamik El Rehberi (Sol veya Sağ El) -->
+    <div class="hand-overlay-card">
+      <div class="hand-title" id="hand-title">SOL EL REHBERİ</div>
+      <!-- Sol El SVG -->
+      <svg class="hand-svg" id="svg-left-hand" viewBox="0 0 120 130">
+        <path class="finger-path" id="f-left-palm" d="M 25 75 Q 20 115 60 115 Q 100 115 95 75 Z" />
+        <path class="finger-path" id="f-left-pinky" d="M 22 70 L 15 35 Q 18 28 25 35 L 32 65 Z" />
+        <path class="finger-path" id="f-left-ring" d="M 34 60 L 32 20 Q 38 14 44 20 L 46 60 Z" />
+        <path class="finger-path" id="f-left-middle" d="M 48 58 L 52 10 Q 58 5 64 10 L 62 58 Z" />
+        <path class="finger-path" id="f-left-index" d="M 64 60 L 72 22 Q 78 18 84 22 L 78 62 Z" />
+        <path class="finger-path" id="f-left-thumb" d="M 88 80 L 108 65 Q 112 72 104 82 L 86 94 Z" />
+      </svg>
+      <!-- Sağ El SVG -->
+      <svg class="hand-svg" id="svg-right-hand" viewBox="0 0 120 130" style="display:none;">
+        <path class="finger-path" id="f-right-palm" d="M 95 75 Q 100 115 60 115 Q 20 115 25 75 Z" />
+        <path class="finger-path" id="f-right-pinky" d="M 98 70 L 105 35 Q 102 28 95 35 L 88 65 Z" />
+        <path class="finger-path" id="f-right-ring" d="M 86 60 L 88 20 Q 82 14 76 20 L 74 60 Z" />
+        <path class="finger-path" id="f-right-middle" d="M 72 58 L 68 10 Q 62 5 56 10 L 58 58 Z" />
+        <path class="finger-path" id="f-right-index" d="M 56 60 L 48 22 Q 42 18 36 22 L 42 62 Z" />
+        <path class="finger-path" id="f-right-thumb" d="M 32 80 L 12 65 Q 8 72 16 82 L 34 94 Z" />
+      </svg>
     </div>
-    <div class="kb-row">
-      <div class="key left-side" id="k-a">A</div>
-      <div class="key left-side" id="k-s">S</div>
-      <div class="key left-side" id="k-d">D</div>
-      <div class="key left-side has-nub" id="k-f">F</div>
-      <div class="key left-side" id="k-g">G</div>
-      <div class="key" id="k-h">H</div>
-      <div class="key has-nub" id="k-j">J</div>
-      <div class="key" id="k-k">K</div>
-      <div class="key" id="k-l">L</div>
-      <div class="key" id="k-ş">Ş</div>
-      <div class="key" id="k-i">İ</div>
+
+    <!-- Görsel Q Klavye -->
+    <div class="keyboard-container">
+      <div class="kb-row">
+        <div class="key left-side" id="k-q">Q</div>
+        <div class="key left-side" id="k-w">W</div>
+        <div class="key left-side" id="k-e">E</div>
+        <div class="key left-side" id="k-r">R</div>
+        <div class="key left-side" id="k-t">T</div>
+        <div class="key right-side" id="k-y">Y</div>
+        <div class="key right-side" id="k-u">U</div>
+        <div class="key right-side" id="k-ı">I</div>
+        <div class="key right-side" id="k-o">O</div>
+        <div class="key right-side" id="k-p">P</div>
+        <div class="key right-side" id="k-ğ">Ğ</div>
+        <div class="key right-side" id="k-ü">Ü</div>
+      </div>
+      <div class="kb-row">
+        <div class="key left-side" id="k-a">A</div>
+        <div class="key left-side" id="k-s">S</div>
+        <div class="key left-side" id="k-d">D</div>
+        <div class="key left-side has-nub" id="k-f">F</div>
+        <div class="key left-side" id="k-g">G</div>
+        <div class="key right-side" id="k-h">H</div>
+        <div class="key right-side has-nub" id="k-j">J</div>
+        <div class="key right-side" id="k-k">K</div>
+        <div class="key right-side" id="k-l">L</div>
+        <div class="key right-side" id="k-ş">Ş</div>
+        <div class="key right-side" id="k-i">İ</div>
+      </div>
+      <div class="kb-row">
+        <div class="key left-side" id="k-z">Z</div>
+        <div class="key left-side" id="k-x">X</div>
+        <div class="key left-side" id="k-c">C</div>
+        <div class="key left-side" id="k-v">V</div>
+        <div class="key left-side" id="k-b">B</div>
+        <div class="key right-side" id="k-n">N</div>
+        <div class="key right-side" id="k-m">M</div>
+        <div class="key right-side" id="k-ö">Ö</div>
+        <div class="key right-side" id="k-ç">Ç</div>
+        <div class="key right-side" id="k-.">.</div>
+        <div class="key right-side" id="k-,">,</div>
+      </div>
+      <div class="kb-row">
+        <div class="key space-key" id="k-space">BOŞLUK (Space)</div>
+      </div>
     </div>
-    <div class="kb-row">
-      <div class="key left-side" id="k-z">Z</div>
-      <div class="key left-side" id="k-x">X</div>
-      <div class="key left-side" id="k-c">C</div>
-      <div class="key left-side" id="k-v">V</div>
-      <div class="key left-side" id="k-b">B</div>
-      <div class="key" id="k-n">N</div>
-      <div class="key" id="k-m">M</div>
-      <div class="key" id="k-ö">Ö</div>
-      <div class="key" id="k-ç">Ç</div>
-      <div class="key" id="k-.">.</div>
-      <div class="key" id="k-,">,</div>
+  </div>
+
+  <div class="badges-card">
+    <div class="badge-item" id="badge-first">
+      <div class="badge-icon">🎯</div>
+      <div class="badge-info">
+        <div class="badge-title">İlk Adım</div>
+        <div class="badge-desc">İlk turu tamamla</div>
+      </div>
     </div>
-    <div class="kb-row">
-      <div class="key space-key" id="k-space">BOŞLUK (Space)</div>
+    <div class="badge-item" id="badge-acc">
+      <div class="badge-icon">🎯</div>
+      <div class="badge-info">
+        <div class="badge-title">Keskin Göz</div>
+        <div class="badge-desc">%95+ doğruluk yap</div>
+      </div>
+    </div>
+    <div class="badge-item" id="badge-left">
+      <div class="badge-icon">🛡️</div>
+      <div class="badge-info">
+        <div class="badge-title">Sol / Sağ Ustası</div>
+        <div class="badge-desc">Tek el turunu bitir</div>
+      </div>
+    </div>
+    <div class="badge-item" id="badge-speed">
+      <div class="badge-icon">⚡</div>
+      <div class="badge-info">
+        <div class="badge-title">Hız Şampiyonu</div>
+        <div class="badge-desc">25+ WPM hıza ulaş</div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal-box">
-    <h2>Alıştırma Tamamlandı! 🎉</h2>
-    <div class="modal-stats">
-      <div>
-        <div class="stat-lbl">Hız</div>
-        <div class="stat-val" id="modal-wpm">0</div>
+<div class="stats-overlay" id="stats-overlay">
+  <div class="stats-modal-box">
+    <div class="stats-modal-header">
+      <h2>📈 Genel İlerleme & Performans Sayfası</h2>
+      <button class="btn-close" onclick="closeStatsModal()">✕</button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="summary-lbl">Tamamlanan Tur</div>
+        <div class="summary-val" id="sum-rounds">0</div>
       </div>
-      <div>
-        <div class="stat-lbl">Doğruluk</div>
-        <div class="stat-val" id="modal-acc">%100</div>
+      <div class="summary-box">
+        <div class="summary-lbl">Ortalama Hız</div>
+        <div class="summary-val" id="sum-wpm">0 WPM</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-lbl">Ortalama Doğruluk</div>
+        <div class="summary-val" id="sum-acc">%0</div>
       </div>
     </div>
-    <p class="modal-tip">Devam etmek için <b>ENTER</b> veya <b>SPACE</b> tuşuna basabilirsiniz.</p>
-    <button class="modal-btn" onclick="nextRound()">Devam Et</button>
+
+    <div class="chart-container-large">
+      <canvas id="mainProgressChart"></canvas>
+    </div>
   </div>
 </div>
 
 <script>
+/* =========================================================================
+   KELİME & CÜMLE HAVUZLARI
+   ========================================================================= */
+
+// SAF SOL EL KELİMELERİ (Q, W, E, R, T, A, S, D, F, G, Z, X, C, V, B)
 const RAW_WORDS_LEFT_ONLY = [
-  "ada", "ara", "art", "asa", "ata", "baba", "bade", "baret", "basar", "bebe",
-  "berat", "berbat", "bere", "beste", "cadde", "cefa", "ceset", "ceza", "caba", "dana",
-  "dara", "dart", "dava", "deve", "dere", "dert", "devre", "deste", "eda", "ege",
-  "eser", "esaret", "esef", "etek", "evet", "evrak", "faraş", "fare", "fark", "feda",
-  "ferah", "fettan", "gasp", "gaye", "gebe", "gece", "geveze", "saat", "saba", "sada",
-  "sade", "safra", "sahte", "sarf", "sarraf", "seda", "sedef", "sefa", "sefer", "serap",
-  "sersem", "sert", "tava", "taze", "taraf", "tarak", "taravet", "tedavi", "tekrar", "terazi",
-  "terbiye", "tere", "terve", "veda", "vefa", "veraset", "vesvese", "veter", "zarar", "zarafet",
-  "zarta", "zaten", "zeval", "zevk", "zirve", "abdest", "adalet", "basit", "bedava", "berrak",
-  "cadı", "damat", "davet", "fecir", "servet", "tasa", "vaha", "zerre", "feza", "safha"
+  "ada", "ara", "art", "asa", "ata", "aba", "ece", "eda", "ege", "efe",
+  "car", "cer", "caz", "var", "ver", "vet", "zar", "zat", "adet", "afet",
+  "acar", "arda", "arsa", "arza", "atac", "atar", "baba", "bade", "baret", "basa",
+  "bata", "bebe", "bere", "cadd", "cefa", "ceza", "dadi", "dara", "dart", "dava",
+  "dede", "dere", "dert", "deve", "devr", "feda", "fare", "fark", "fars", "fara",
+  "fers", "feza", "gaba", "gara", "gaye", "gebe", "gece", "gaza", "saat", "saba",
+  "sada", "sade", "sarf", "seda", "sefa", "sera", "sert", "tava", "taze", "taraf",
+  "tere", "veda", "vefa", "veto", "zarf", "zarar", "zarafet", "araba", "abdest", "adalet",
+  "avare", "berbat", "berat", "beste", "cadde", "ceset", "davet", "deste", "devas",
+  "devre", "esaret", "evrak", "geveze", "sarraf", "terazi", "terbiye", "veraset", "vesvese",
+  "veter"
 ];
 
+// SAF SAĞ EL KELİMELERİ (Y, U, I, O, P, Ğ, Ü, H, J, K, L, Ş, İ, N, M, Ö, Ç)
+const RAW_WORDS_RIGHT_ONLY = [
+  "il", "iş", "ip", "iç", "im", "in", "iğ", "ik", "ış", "ik", "ilçe", "ilişki",
+  "kış", "kuş", "kıl", "kul", "kum", "kın", "kır", "kök", "köl", "koyu", "koyu",
+  "okul", "oluş", "onun", "oyun", "oyum", "oğul", "olum", "oluşum", "oşin",
+  "ışık", "ışıl", "ılıman", "ılık", "ırım", "ışkın",
+  "ünlü", "üçlü", "ülke", "ürün", "ürop", "üçüz",
+  "ölüm", "ölçü", "ömür", "örük", "örün", "ölüç",
+  "çoğu", "çoklu", "çünkü", "çukur", "çözüm", "çökük",
+  "hoş", "huş", "hukuk", "hüküm", "hünip",
+  "komşu", "koşul", "konu", "koku", "köprü", "kuyu", "kuyum", "künk",
+  "yıl", "yol", "yön", "yük", "yün", "yüz", "yeşil", "yoğun", "yoğurt",
+  "mülk", "müfettiş", "mühür", "müşteri", "müzik", "münir", "mümin",
+  "niş", "nükleer", "nutuk", "nokta", "nur", "numara", "nüfus",
+  "pişmiş", "piliç", "polo", "porsiyon", "puf", "pürüz", "püskül",
+  "şehir", "şiir", "şirket", "şimdi", "şöyle", "şuur", "şölen"
+];
+
+// DENGELİ ÇİFT EL KELİME HAVUZU
 const RAW_WORDS_BALANCED = [
   "kitap", "kalem", "defter", "masal", "dünya", "zaman", "insan", "hayat", "sevgi", "güneş",
   "deniz", "orman", "bulut", "bahçe", "çiçek", "sabah", "akşam", "yıldız", "köprü", "pencere",
   "kapı", "duvar", "çocuk", "anne", "baba", "kardeş", "dostluk", "huzur", "mutlu", "başarı",
   "hedef", "çalış", "öğren", "geliş", "bilgi", "fikir", "akıl", "yürek", "güven", "umut",
-  "sevinç", "coşku", "barış", "özgür", "şehir", "sokak", "yolcu", "durak", "tren", "otobüs",
-  "vapur", "martı", "balık", "nehir", "yağmur", "rüzgar", "toprak", "tohum", "meyve", "yaprak",
-  "ağaç", "tarla", "ekmek", "yemek", "sofra", "lezzet", "tatlı", "şerbet", "kahve", "fincan",
-  "bardak", "kaşık", "tabak", "çatal", "bıçak", "ocak", "fırın", "dolap", "koltuk", "yastık",
-  "çarşaf", "yatak", "banyo", "havlu", "ayna", "tarak", "sabun", "şampuan", "fırça", "macun",
-  "saat", "dakika", "saniye", "hafta", "aylar", "mevsim", "bahar", "yazlık", "güzlük", "kışlık"
+  "sevinç", "coşku", "barış", "özgür", "şehir", "sokak", "yolcu", "durak", "tren", "otobüs"
 ];
 
+// SAF SOL EL CÜMLELERİ
 const RAW_SENTENCES_LEFT_ONLY = [
   "Ada taze.", "Bade cafe sever.", "Cefa biter, sefa artar.", "Dava devam eder.",
   "Eda ve Ece eve varır.", "Fark var.", "Gece sert rüzgar eser.", "Saat teker teker atar.",
   "Taze tere sat.", "Veda vakti.", "Zara zarar eder.", "Berbat bir tava.", "Dede saat takar.",
   "Eser devam eder.", "Baba ceza yazar.", "Sert ve sade ada.", "Tatlı bir vefa.",
   "Deste deste evrak var.", "Ceset ada tarafında.", "Taraf tutma.", "Esaret biter.",
-  "Afet ve dava.", "Cadde dar.", "Devre biter.", "Feda etme.", "Geveze deve.",
-  "Gaye ferah.", "Seda vefa bekler.", "Serap su arar.", "Taze ekmek tat.",
-  "Zarafet artar.", "Basit bir tercih.", "Berat eve varır.", "Dert biter.",
-  "Eda sefa sürer.", "Fecir vakti.", "Gece serin.", "Saat tıkır tıkır.",
-  "Vera retro sever.", "Tekrar etme.", "Adalet ve erdem.", "Cadde ses verir.",
-  "Damat eve gider.", "Ece ve Eda.", "Fırtına eser.", "Gaye tebessüm eder.",
-  "Sert adımlar atar.", "Tava sıcak.", "Veda etme vakti.", "Zarif bir eda.",
-  "Ada sert eser.", "Bade ceza keser.", "Cesur bir tavır.", "Deste evrak.",
-  "Eser tekrar eder.", "Ferah bir ada.", "Gece tatlı eser.", "Saat durur.",
-  "Taze tat.", "Vefa borcu biter.", "Zarar verme.", "Basit kelimeler.",
-  "Cadde tenha.", "Dert etme.", "Ece terler.", "Feda edilir.",
-  "Sade ve sakin.", "Taraf belli.", "Verimli bir devre.", "Zaman akar.",
-  "Adım adım ilerle.", "Büyük bir dava.", "Cesur adımlar.", "Daima ileri.",
-  "Eser ve sanat.", "Fikret sever.", "Gece ve sessizlik.", "Saat ses verir.",
-  "Tatlı bir anı.", "Vatan ve bayrak.", "Zafer yakın.", "Adalet mülkün temeli.",
-  "Bade neşeli.", "Cesur yürek.", "Dost dediğin vefalıdır.", "Emeğin karşılığı.",
-  "Ferah bir nefes.", "Gelecek parlak.", "Sabır selamet.", "Tarih tekerrür eder.",
-  "Vakit dar.", "Zarif davranış.", "Azimle devam et.", "Birlikten kuvvet doğar.",
-  "Cesaret başarının anahtarıdır.", "Doğru yoldan şaşma.", "Emek zayi olmaz.",
-  "Fikir hür, vicdan hür.", "Güzel günler yakın.", "Sevgi her engeli aşar.", "Tek gayemiz başarıdır."
+  "Afet ve dava.", "Cadde dar.", "Devre biter.", "Feda etme.", "Geveze deve."
 ];
 
+// SAF SAĞ EL CÜMLELERİ
+const RAW_SENTENCES_RIGHT_ONLY = [
+  "Okul açıldı.", "Komşu kışlık un aldı.", "Işık ışıl ışıl.", "İlişki yoğun.",
+  "Koşul uyumlu.", "Çünkü çözüm çok yakın.", "Şehir ışıldıyor.", "Kış günü soğuk.",
+  "Şiir okumuştum.", "Konu önemli.", "Yönümüz kuzey.", "Çok ünlü bir kişi.",
+  "Ülke büyüyor.", "Ömür geçiyor.", "Ürün kaliteli.", "Çözüm üretildi.",
+  "Işığın yönü.", "Kuş uçtu.", "Okulun yolu.", "Şu konu açık.", "Yoğun kış.",
+  "Köyün yolu.", "Kuyumcu açık.", "Koku hoş.", "Müzik dinliyor.", "Şiir yazıyor."
+];
+
+// DENGELİ ÇİFT EL CÜMLELERİ
 const RAW_SENTENCES_BALANCED = [
   "Hızlı ve doğru yazmak büyük bir avantajdır.", "Teyzem her geçen gün daha hızlı yazıyor.",
   "Sol elini alıştırmak için ekrana bakman yeterlidir.", "Kitap okumak insanın ufkunu genişletir.",
-  "Güneşli bir sabah yürüyüş yapmak harika hissettirir.", "Başarı, düzenli ve sabırlı çalışmanın sonucudur.",
-  "Klavye üzerinde parmaklarını serbest bırak.", "F tuşundaki kabartma senin merkez üssündür.",
-  "Acele etmeden, doğru harfe basmaya özen göster.", "Zamanla parmakların kendiliğinden hızlanacaktır.",
-  "Bir fincan sıcak kahve eşliğinde çalışmak güzeldir.", "Her gün on beş dakika pratik yapmak yeterlidir.",
-  "Sağ elinle bildiğin harfleri rahatça tamamla.", "Deniz kenarında oturup dalgaları dinlemek huzur verir.",
-  "Yeni alışkanlıklar kazanmak biraz zaman alabilir.", "Sabırla devam ettiğinde farkı göreceksin.",
-  "Yazı yazarken dik oturmak omurga sağlığı için iyidir.", "Gözlerini ekrandan ayırmadan yazmaya odaklan.",
-  "Küçük adımlar büyük zaferlerin habercisidir.", "Bugün dünden çok daha başarılı olacaksın.",
-  "Kütüphanede sessizce çalışmak verimi artırır.", "Bahçedeki çiçekler baharın gelişini müjdeliyor.",
-  "Mavi gökyüzünde beyaz bulutlar süzülüyor.", "Her satırda ritmini biraz daha bulacaksın.",
-  "Ekrana güven, parmakların nereye gideceğini hatırlar.", "Birlikte çalışmak her zaman daha keyiflidir.",
-  "Derin bir nefes al ve bir sonraki kelimeye geç.", "Hata yapmaktan korkma, önemli olan devam etmektir.",
-  "İyi bir klavye kullanıcısı ekrana bakarak yazar.", "Zaman geçtikçe ellerin adeta uçarcasına yazacak.",
-  "Doğru duruş ve rahat parmaklar hız kazandırır.", "Akşam serinliğinde balkonda oturmak keyif verir.",
-  "Hedefine adım adım yaklaştığını unutma.", "Her tuş vuruşu seni biraz daha ileriye taşır.",
-  "Günün yorgunluğu güzel bir tebessümle geçer.", "Yarın bugünden çok daha kolay gelecek.",
-  "Öğrenmenin yaşı ve sınırı hiçbir zaman yoktur.", "Azmin elinden hiçbir zorluk kurtulamaz.",
-  "Temiz hava zihni dinç ve açık tutar.", "Kendine inan, bu işi çok kolay başaracaksın.",
-  "Kuş sesleri eşliğinde yeni bir güne başlamak harika.", "Her kelimede doğru parmağını kullanmaya gayret et.",
-  "Klavyedeki tuşların yerini zihnin haritalandırıyor.", "Yoruldukça kısa molalar vermek verimi yükseltir.",
-  "Güzel bir müzik eşliğinde çalışmak motivasyon sağlar.", "Zor gibi görünen şeyler tekrarla kolaylaşır.",
-  "Yazma hızı pratik yaptıkça kendiliğinden artar.", "Önemli olan hızdan önce harfleri doğru basmaktır.",
-  "Harfleri doğru yazdıkça hızın doğal olarak yükselecek.", "Gözlerin hep yazacağın sonraki harfte olsun.",
-  "Bütün parmakların uyum içinde çalışması bir danstır.", "Kendine güven, teyzem harika işler çıkarıyor.",
-  "Her başarılı deneme yeni bir mutluluk kaynağıdır.", "Sakin kal ve ritmini hiç bozmadan devam et.",
-  "Pencereden süzülen rüzgar odayı ferahlatıyor.", "Biraz su içip enerjini tazeleyebilirsin.",
-  "Kelimeler su gibi akıp gidecek.", "Gelişimin her geçen gün biraz daha belirginleşiyor.",
-  "Parmak kasların yeni hareketleri hızla öğreniyor.", "Başarılı olacağına yürekten inanıyoruz.",
-  "Sol elinin refleksleri şimdiden güçlenmeye başladı.", "Pratik yapmak ustalığın ilk şartıdır.",
-  "Bilgi paylaştıkça çoğalan eşsiz bir hazinedir.", "Güzel huylu insanlar etrafına neşe saçar.",
-  "Yaz tatilinde deniz kıyısında olmak harikaydı.", "Kış gecelerinde sıcak bir çay içmek paha biçilemez.",
-  "Doğanın güzellikleri karşısında büyülenmemek imkansız.", "Meyve ağaçları bu sene bereket saçıyor.",
-  "Her yeni kelime sana yeni bir hız kazandırır.", "Birlikte başarmak her şeyden daha değerlidir.",
-  "Şimdi arkana yaslan ve odaklanmaya devam et.", "Harika bir performans sergiliyorsun, aynen böyle devam et."
+  "Güneşli bir sabah yürüyüş yapmak harika hissettirir.", "Başarı, düzenli ve sabırlı çalışmanın sonucudur."
 ];
 
+/* PARMAK VE HARF HARİTALARI */
 const FINGER_MAP = {
-  'q': 'Sol Serçe', 'a': 'Sol Serçe', 'z': 'Sol Serçe',
-  'w': 'Sol Yüzük', 's': 'Sol Yüzük', 'x': 'Sol Yüzük',
-  'e': 'Sol Orta', 'd': 'Sol Orta', 'c': 'Sol Orta',
-  'r': 'Sol İşaret', 'f': 'Sol İşaret', 'v': 'Sol İşaret',
-  't': 'Sol İşaret (Uzan)', 'g': 'Sol İşaret (Uzan)', 'b': 'Sol İşaret (Uzan)',
-  ' ': 'Başparmak (Boşluk)'
+  // SOL EL
+  'q': { text: 'Sol Serçe', id: 'f-left-pinky', hand: 'left' },
+  'a': { text: 'Sol Serçe', id: 'f-left-pinky', hand: 'left' },
+  'z': { text: 'Sol Serçe', id: 'f-left-pinky', hand: 'left' },
+  'w': { text: 'Sol Yüzük', id: 'f-left-ring', hand: 'left' },
+  's': { text: 'Sol Yüzük', id: 'f-left-ring', hand: 'left' },
+  'x': { text: 'Sol Yüzük', id: 'f-left-ring', hand: 'left' },
+  'e': { text: 'Sol Orta', id: 'f-left-middle', hand: 'left' },
+  'd': { text: 'Sol Orta', id: 'f-left-middle', hand: 'left' },
+  'c': { text: 'Sol Orta', id: 'f-left-middle', hand: 'left' },
+  'r': { text: 'Sol İşaret', id: 'f-left-index', hand: 'left' },
+  'f': { text: 'Sol İşaret', id: 'f-left-index', hand: 'left' },
+  'v': { text: 'Sol İşaret', id: 'f-left-index', hand: 'left' },
+  't': { text: 'Sol İşaret (Uzan)', id: 'f-left-index', hand: 'left' },
+  'g': { text: 'Sol İşaret (Uzan)', id: 'f-left-index', hand: 'left' },
+  'b': { text: 'Sol İşaret (Uzan)', id: 'f-left-index', hand: 'left' },
+
+  // SAĞ EL
+  'y': { text: 'Sağ İşaret (Uzan)', id: 'f-right-index', hand: 'right' },
+  'h': { text: 'Sağ İşaret (Uzan)', id: 'f-right-index', hand: 'right' },
+  'n': { text: 'Sağ İşaret (Uzan)', id: 'f-right-index', hand: 'right' },
+  'u': { text: 'Sağ İşaret', id: 'f-right-index', hand: 'right' },
+  'j': { text: 'Sağ İşaret', id: 'f-right-index', hand: 'right' },
+  'm': { text: 'Sağ İşaret', id: 'f-right-index', hand: 'right' },
+  'ı': { text: 'Sağ Orta', id: 'f-right-middle', hand: 'right' },
+  'i': { text: 'Sağ Orta', id: 'f-right-middle', hand: 'right' },
+  'k': { text: 'Sağ Orta', id: 'f-right-middle', hand: 'right' },
+  'ö': { text: 'Sağ Orta', id: 'f-right-middle', hand: 'right' },
+  'o': { text: 'Sağ Yüzük', id: 'f-right-ring', hand: 'right' },
+  'l': { text: 'Sağ Yüzük', id: 'f-right-ring', hand: 'right' },
+  'ç': { text: 'Sağ Yüzük', id: 'f-right-ring', hand: 'right' },
+  'p': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+  'ğ': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+  'ü': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+  'ş': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+  '.': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+  ',': { text: 'Sağ Serçe', id: 'f-right-pinky', hand: 'right' },
+
+  ' ': { text: 'Başparmak (Boşluk)', id: 'f-left-thumb', hand: 'left' }
 };
 
 let typeMode = 'words';
-let diffMode = 'leftOnly';
+let diffMode = 'leftOnly'; // leftOnly, rightOnly, balanced
 let soundEnabled = true;
+let speechEnabled = false;
 
 let pool = [];
 let itemIndex = 0;
@@ -512,17 +688,29 @@ let totalTyped = 0;
 let totalCorrect = 0;
 let roundStartTime = null;
 
+let keyErrors = {};
+let unlockedBadges = { first: false, acc: false, left: false, speed: false };
+let historyLogs = [];
+let chartInstance = null;
+
 const typingBox = document.getElementById('typing-box');
 const caret = document.getElementById('caret');
 const hintKey = document.getElementById('hint-key');
 const hintFinger = document.getElementById('hint-finger');
 const statWpm = document.getElementById('stat-wpm');
 const statAcc = document.getElementById('stat-acc');
+const statWeakKeys = document.getElementById('stat-weak-keys');
 const statProg = document.getElementById('stat-progress');
 const progFill = document.getElementById('progress-fill');
-const modalOverlay = document.getElementById('modal-overlay');
-const modalWpm = document.getElementById('modal-wpm');
-const modalAcc = document.getElementById('modal-acc');
+
+const handTitle = document.getElementById('hand-title');
+const svgLeftHand = document.getElementById('svg-left-hand');
+const svgRightHand = document.getElementById('svg-right-hand');
+
+const statsOverlay = document.getElementById('stats-overlay');
+const sumRounds = document.getElementById('sum-rounds');
+const sumWpm = document.getElementById('sum-wpm');
+const sumAcc = document.getElementById('sum-acc');
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -552,7 +740,24 @@ function playKeyTone(isWrong = false) {
   }
 }
 
-// Fisher-Yates Karıştırma Algoritması
+function speakWord(text) {
+  if (!speechEnabled || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'tr-TR';
+  utterance.volume = 1.0;
+  utterance.rate = 0.7;
+
+  const voices = window.speechSynthesis.getVoices();
+  const trVoice = voices.find(v => v.lang.includes('tr'));
+  if (trVoice) {
+    utterance.voice = trVoice;
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+
 function shuffleArray(arr) {
   const newArr = [...arr];
   for (let i = newArr.length - 1; i > 0; i--) {
@@ -562,19 +767,21 @@ function shuffleArray(arr) {
   return newArr;
 }
 
-// LocalStorage İlerleme Kaydı
 function saveProgress() {
   const saveData = {
     typeMode,
     diffMode,
     itemIndex,
-    pool
+    pool,
+    keyErrors,
+    unlockedBadges,
+    historyLogs
   };
-  localStorage.setItem('left_hand_practice_save', JSON.stringify(saveData));
+  localStorage.setItem('left_hand_practice_save_v10', JSON.stringify(saveData));
 }
 
 function loadProgress() {
-  const saved = localStorage.getItem('left_hand_practice_save');
+  const saved = localStorage.getItem('left_hand_practice_save_v10');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -582,11 +789,16 @@ function loadProgress() {
       if (parsed.diffMode) diffMode = parsed.diffMode;
       if (parsed.itemIndex !== undefined) itemIndex = parsed.itemIndex;
       if (parsed.pool && parsed.pool.length > 0) pool = parsed.pool;
+      if (parsed.keyErrors) keyErrors = parsed.keyErrors;
+      if (parsed.unlockedBadges) unlockedBadges = parsed.unlockedBadges;
+      if (parsed.historyLogs) historyLogs = parsed.historyLogs;
 
       updateButtonsUI();
+      updateBadgesUI();
+      updateWeakKeysUI();
       return true;
     } catch (e) {
-      console.error("Kayıt verisi okunamadı:", e);
+      console.error("Kayıt okunamadı:", e);
     }
   }
   return false;
@@ -596,7 +808,36 @@ function updateButtonsUI() {
   document.getElementById('btn-type-words').classList.toggle('active', typeMode === 'words');
   document.getElementById('btn-type-sentences').classList.toggle('active', typeMode === 'sentences');
   document.getElementById('btn-diff-left').classList.toggle('active', diffMode === 'leftOnly');
+  document.getElementById('btn-diff-right').classList.toggle('active', diffMode === 'rightOnly');
   document.getElementById('btn-diff-mix').classList.toggle('active', diffMode === 'balanced');
+
+  // El Görselini Değiştir (Sol vs Sağ)
+  if (diffMode === 'rightOnly') {
+    handTitle.textContent = "SAĞ EL REHBERİ";
+    svgLeftHand.style.display = 'none';
+    svgRightHand.style.display = 'block';
+  } else {
+    handTitle.textContent = "SOL EL REHBERİ";
+    svgLeftHand.style.display = 'block';
+    svgRightHand.style.display = 'none';
+  }
+}
+
+function updateBadgesUI() {
+  if (unlockedBadges.first) document.getElementById('badge-first').classList.add('unlocked');
+  if (unlockedBadges.acc) document.getElementById('badge-acc').classList.add('unlocked');
+  if (unlockedBadges.left) document.getElementById('badge-left').classList.add('unlocked');
+  if (unlockedBadges.speed) document.getElementById('badge-speed').classList.add('unlocked');
+}
+
+function updateWeakKeysUI() {
+  const sorted = Object.entries(keyErrors).sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) {
+    statWeakKeys.textContent = "-";
+  } else {
+    const top3 = sorted.slice(0, 3).map(e => e[0].toUpperCase()).join(', ');
+    statWeakKeys.textContent = top3;
+  }
 }
 
 function setTypeMode(mode) {
@@ -620,15 +861,25 @@ function toggleSound() {
   btn.textContent = soundEnabled ? '🔊 Ses Açık' : '🔇 Ses Kapalı';
 }
 
+function toggleSpeech() {
+  speechEnabled = !speechEnabled;
+  const btn = document.getElementById('btn-speech');
+  btn.classList.toggle('active', speechEnabled);
+  btn.textContent = speechEnabled ? '🗣️ Kelime Okuma Açık' : '🔇 Kelime Okuma Kapalı';
+  if (speechEnabled) speakWord(currentText);
+}
+
 function loadPool() {
   let source = [];
   if (typeMode === 'words') {
-    source = diffMode === 'leftOnly' ? RAW_WORDS_LEFT_ONLY : RAW_WORDS_BALANCED;
+    if (diffMode === 'leftOnly') source = RAW_WORDS_LEFT_ONLY;
+    else if (diffMode === 'rightOnly') source = RAW_WORDS_RIGHT_ONLY;
+    else source = RAW_WORDS_BALANCED;
   } else {
-    source = diffMode === 'leftOnly' ? RAW_SENTENCES_LEFT_ONLY : RAW_SENTENCES_BALANCED;
+    if (diffMode === 'leftOnly') source = RAW_SENTENCES_LEFT_ONLY;
+    else if (diffMode === 'rightOnly') source = RAW_SENTENCES_RIGHT_ONLY;
+    else source = RAW_SENTENCES_BALANCED;
   }
-  
-  // Listeyi karıştırarak rastgele hale getir
   pool = shuffleArray(source);
   startNewItem();
 }
@@ -636,7 +887,6 @@ function loadPool() {
 function startNewItem() {
   if (itemIndex >= pool.length) {
     itemIndex = 0;
-    // Tur bittiğinde yeniden karıştır
     loadPool();
     return;
   }
@@ -649,6 +899,8 @@ function startNewItem() {
   renderTypingDOM();
   updateProgressUI();
   updateTargetVisuals();
+  
+  if (speechEnabled) speakWord(currentText);
   typingBox.focus();
 }
 
@@ -704,10 +956,17 @@ function positionCaret() {
 
 function updateTargetVisuals() {
   document.querySelectorAll('.key.active-target').forEach(k => k.classList.remove('active-target'));
+  document.querySelectorAll('.finger-path.active-finger').forEach(f => f.classList.remove('active-finger'));
 
   if (currentCharIndex >= currentText.length) {
-    hintKey.textContent = "Tamamlandı!";
-    hintFinger.textContent = "SPACE ile devam";
+    hintKey.textContent = "BOŞLUK (Space)";
+    hintFinger.textContent = "Başparmak ile devama bas";
+    const spaceKey = document.getElementById('k-space');
+    if (spaceKey) spaceKey.classList.add('active-target');
+
+    const thumbId = diffMode === 'rightOnly' ? 'f-right-thumb' : 'f-left-thumb';
+    const thumbElem = document.getElementById(thumbId);
+    if (thumbElem) thumbElem.classList.add('active-finger');
     return;
   }
 
@@ -726,12 +985,28 @@ function updateTargetVisuals() {
   hintKey.textContent = expectedChar === ' ' ? 'BOŞLUK' : expectedChar;
 
   const isUpper = expectedChar !== expectedChar.toLowerCase() && expectedChar !== ' ';
-  const shiftNote = isUpper ? ' (Sağ Shift ile)' : '';
+  const shiftNote = isUpper ? ' (Shift ile)' : '';
 
   if (FINGER_MAP[charLower]) {
-    hintFinger.textContent = FINGER_MAP[charLower] + shiftNote;
+    const fData = FINGER_MAP[charLower];
+    hintFinger.textContent = fData.text + shiftNote;
+
+    // Aktif olan el görselinde parmağı parlat
+    const fingerElem = document.getElementById(fData.id);
+    if (fingerElem) {
+      if (fData.hand === 'right' && diffMode === 'balanced') {
+        handTitle.textContent = "SAĞ EL REHBERİ";
+        svgLeftHand.style.display = 'none';
+        svgRightHand.style.display = 'block';
+      } else if (fData.hand === 'left' && diffMode === 'balanced') {
+        handTitle.textContent = "SOL EL REHBERİ";
+        svgLeftHand.style.display = 'block';
+        svgRightHand.style.display = 'none';
+      }
+      fingerElem.classList.add('active-finger');
+    }
   } else {
-    hintFinger.textContent = 'Sağ El' + shiftNote;
+    hintFinger.textContent = 'Diğer El' + shiftNote;
   }
 }
 
@@ -750,11 +1025,8 @@ function updateProgressUI() {
 }
 
 window.addEventListener('keydown', (e) => {
-  if (modalOverlay.classList.contains('open')) {
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      nextRound();
-    }
+  if (statsOverlay.classList.contains('open')) {
+    if (e.key === 'Escape') closeStatsModal();
     return;
   }
 
@@ -774,6 +1046,21 @@ window.addEventListener('keydown', (e) => {
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault();
 
+    if (currentCharIndex >= currentText.length) {
+      if (e.key === ' ') {
+        const wpm = parseInt(statWpm.textContent) || 0;
+        const acc = parseInt(statAcc.textContent.replace('%', '')) || 100;
+        historyLogs.push({ wpm, acc, date: new Date().toLocaleDateString() });
+        checkBadges(wpm, acc);
+
+        itemIndex++;
+        startNewItem();
+      } else {
+        playKeyTone(true);
+      }
+      return;
+    }
+
     if (!roundStartTime) roundStartTime = new Date();
 
     const expectedChar = currentText[currentCharIndex];
@@ -789,42 +1076,102 @@ window.addEventListener('keydown', (e) => {
     } else {
       span.classList.add('wrong');
       playKeyTone(true);
+
+      const errKey = expectedChar.toLowerCase();
+      keyErrors[errKey] = (keyErrors[errKey] || 0) + 1;
+      updateWeakKeysUI();
     }
 
     currentCharIndex++;
     updateProgressUI();
     positionCaret();
-
-    if (currentCharIndex >= currentText.length) {
-      setTimeout(() => {
-        itemIndex++;
-        if (itemIndex % 10 === 0 || itemIndex >= pool.length) {
-          openModal();
-        } else {
-          startNewItem();
-        }
-      }, 150);
-    } else {
-      updateTargetVisuals();
-    }
+    updateTargetVisuals();
   }
 });
 
-function openModal() {
-  modalWpm.textContent = statWpm.textContent;
-  modalAcc.textContent = statAcc.textContent;
-  modalOverlay.classList.add('open');
+function checkBadges(wpm, acc) {
+  unlockedBadges.first = true;
+  if (acc >= 95) unlockedBadges.acc = true;
+  if (diffMode !== 'balanced' && acc >= 90) unlockedBadges.left = true;
+  if (wpm >= 25) unlockedBadges.speed = true;
+
+  updateBadgesUI();
+  saveProgress();
 }
 
-function nextRound() {
-  modalOverlay.classList.remove('open');
-  startNewItem();
+function openStatsModal() {
+  sumRounds.textContent = historyLogs.length;
+
+  if (historyLogs.length > 0) {
+    const avgWpm = Math.round(historyLogs.reduce((a, b) => a + b.wpm, 0) / historyLogs.length);
+    const avgAcc = Math.round(historyLogs.reduce((a, b) => a + b.acc, 0) / historyLogs.length);
+    sumWpm.textContent = `${avgWpm} WPM`;
+    sumAcc.textContent = `%${avgAcc}`;
+  } else {
+    sumWpm.textContent = '0 WPM';
+    sumAcc.textContent = '%0';
+  }
+
+  renderMainChart();
+  statsOverlay.classList.add('open');
+}
+
+function closeStatsModal() {
+  statsOverlay.classList.remove('open');
+  typingBox.focus();
+}
+
+function renderMainChart() {
+  const ctx = document.getElementById('mainProgressChart').getContext('2d');
+  const labels = historyLogs.map((_, i) => `Tur ${i + 1}`);
+  const wpms = historyLogs.map(h => h.wpm);
+  const accs = historyLogs.map(h => h.acc);
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.slice(-15),
+      datasets: [
+        {
+          label: 'Hız (WPM)',
+          data: wpms.slice(-15),
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.15)',
+          fill: true,
+          tension: 0.3
+        },
+        {
+          label: 'Doğruluk (%)',
+          data: accs.slice(-15),
+          borderColor: '#22c55e',
+          borderDash: [5, 5],
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+      }
+    }
+  });
+}
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
 }
 
 window.addEventListener('resize', positionCaret);
 typingBox.addEventListener('click', () => typingBox.focus());
 
-// Uygulamayı Başlat
 if (!loadProgress()) {
   loadPool();
 } else {
